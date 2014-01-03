@@ -1,4 +1,18 @@
 """Implementation of JSONDecoder
+
+TODO:
+
+1. Use something like [this](http://stackoverflow.com/a/14763408/623735)
+for both encoding and decoding timezones unambiguously.
+2. Fall back to ambiguous alternatives (dateutil.parser)
+3. Add arguments to control fuzziness/ambiguity of decoder
+
+d = datetime.datetime.now(pytz.timezone("America/New_York"))
+dtz_string = d.strftime(fmt) + ' ' + "America/New_York"
+d_string, tz_string = dtz_string.rsplit(' ', 1)
+d2 = datetime.datetime.strptime(d_string, fmt)
+tz2 = pytz.timezone(tz_string)
+
 """
 from __future__ import absolute_import
 import re
