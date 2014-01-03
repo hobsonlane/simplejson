@@ -382,7 +382,7 @@ class JSONEncoderForHTML(JSONEncoder):
 
 def _make_iterencode(markers, _default, _encoder, _indent, _floatstr,
         _key_separator, _item_separator, _sort_keys, _skipkeys, _one_shot,
-        _use_decimal, _use_dateteime, _namedtuple_as_object, _tuple_as_array,
+        _use_decimal, _use_datetime, _namedtuple_as_object, _tuple_as_array,
         _bigint_as_string, _item_sort_key, _encoding, _for_json,
         ## HACK: hand-optimized bytecode; turn globals into locals
         _PY3=PY3,
