@@ -21,6 +21,8 @@ import struct
 from .compat import fromhex, b, u, text_type, binary_type, PY3, unichr
 from .scanner import make_scanner, JSONDecodeError
 
+import datetime
+
 def _import_c_scanstring():
     try:
         from ._speedups import scanstring
@@ -34,6 +36,28 @@ c_scanstring = _import_c_scanstring()
 __all__ = ['JSONDecoder']
 
 FLAGS = re.VERBOSE | re.MULTILINE | re.DOTALL
+
+def decode_datetime(datetime_or_string):
+    try:
+        return datetime.strptime(datetime_or_string, decode_datetime.format)
+    except:
+        return datetime_or_string
+decode_datetime.format = '%Y-%m-%d %H:%M:%S'  # plus timezone name at the end
+
+def parse_string_or_datetime(datetime_or_string, idx, encoding, strict):
+    try:
+        return datetime.datetime(datetime_or_string)
+    except TypeError, ValueError:
+        pass
+    try:
+        if parse_string_or_datetime.parse_string:
+            datetime_or_string = decode_datetime(datetime_or_string[idx:])
+        if isinstance(datetime_or_string, (datetime.datetime, datetime.date)):
+            return datetime_or_string, idx
+    except ValueError:
+        pass
+    return scanstring(datetime_or_string, idx, encoding, strict)
+parse_string_or_datetime.parse_string = None
 
 def _floatconstants():
     _BYTES = fromhex('7FF80000000000007FF0000000000000')
@@ -294,9 +318,9 @@ class JSONDecoder(object):
     | object        | dict              |
     +---------------+-------------------+
     | array         | list              |
-    +---------------+-------------------+
-    | string        | str, unicode      |
-    +---------------+-------------------+
+    +---------------+-----------------------------+
+    | string        | str, unicode, datetime      |
+    +---------------+-----------------------------+
     | number (int)  | int, long         |
     +---------------+-------------------+
     | number (real) | float             |
@@ -314,6 +338,7 @@ class JSONDecoder(object):
     """
 
     def __init__(self, encoding=None, object_hook=None, parse_float=None,
+            parse_datetime=None,
             parse_int=None, parse_constant=None, strict=True,
             object_pairs_hook=None):
         """
@@ -330,7 +355,7 @@ class JSONDecoder(object):
         deserializations (e.g. to support JSON-RPC class hinting).
 
         *object_pairs_hook* is an optional function that will be called with
-        the result of any object literal decode with an ordered list of pairs.
+        the result of any object literal decoded as an ordered list of pairs.
         The return value of *object_pairs_hook* will be used instead of the
         :class:`dict`.  This feature can be used to implement custom decoders
         that rely on the order that the key and value pairs are decoded (for
@@ -342,6 +367,18 @@ class JSONDecoder(object):
         JSON float to be decoded.  By default, this is equivalent to
         ``float(num_str)``. This can be used to use another datatype or parser
         for JSON floats (e.g. :class:`decimal.Decimal`).
+
+        *parse_datetime*, if specified, will be called with the string of every
+        JSON basestring to be decoded. If the *parse_datetime* function/class
+        raises an exception, the raw str/unicode will be returned unparsed.
+        The default parser recognizes and decodes datetime strings of the form
+        u'2001-01-02 03:04:50' (no time zone information).
+        *parse_datetime* can be used employ another `datetime` parser
+        for JSON strings that can represent datetime objects
+        (e.g. :class:`dateutil.parser.parse`).
+        An alternative datetime encoding/decoding approach that works in
+        ver<=3.3.1 is to point *object_hook* to a datetime constructor,
+        like [this](http://stackoverflow.com/a/3235787/623735).
 
         *parse_int*, if specified, will be called with the string of every
         JSON int to be decoded.  By default, this is equivalent to
@@ -365,14 +402,18 @@ class JSONDecoder(object):
         self.object_hook = object_hook
         self.object_pairs_hook = object_pairs_hook
         self.parse_float = parse_float or float
+        self.parse_datetime = parse_datetime or decode_datetime
         self.parse_int = parse_int or int
         self.parse_constant = parse_constant or _CONSTANTS.__getitem__
         self.strict = strict
         self.parse_object = JSONObject
         self.parse_array = JSONArray
-        self.parse_string = scanstring
+        # FIXME: horrible (incorrect?!) monkey-patch
+        parse_string_or_datetime.parse_datetime = self.parse_datetime
+        self.parse_string = parse_string_or_datetime
         self.memo = {}
         self.scan_once = make_scanner(self)
+
 
     def decode(self, s, _w=WHITESPACE.match, _PY3=PY3):
         """Return the Python representation of ``s`` (a ``str`` or ``unicode``
