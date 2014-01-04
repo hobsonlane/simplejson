@@ -372,6 +372,35 @@ def dumps(obj, skipkeys=False, ensure_ascii=True, check_circular=True,
 _default_decoder = JSONDecoder(encoding=None, object_hook=None,
                                object_pairs_hook=None)
 
+#from http://stackoverflow.com/a/3235787/623735
+import datetime
+def _datetime_decoder(d):
+    if isinstance(d, list):
+        pairs = enumerate(d)
+    elif isinstance(d, dict):
+        pairs = d.items()
+    result = []
+    for k,v in pairs:
+        if isinstance(v, basestring):
+            try:
+                # The %f format code is only supported in Python >= 2.6.
+                # For Python <= 2.5 strip off microseconds
+                # v = datetime.datetime.strptime(v.rsplit('.', 1)[0],
+                #     '%Y-%m-%dT%H:%M:%S')
+                v = datetime.datetime.strptime(v, '%Y-%m-%dT%H:%M:%S.%f')
+            except ValueError:
+                try:
+                    v = datetime.datetime.strptime(v, '%Y-%m-%d').date()
+                except ValueError:
+                    pass
+        elif isinstance(v, (dict, list)):
+            v = _datetime_decoder(v)
+        result.append((k, v))
+    if isinstance(d, list):
+        return [x[1] for x in result]
+    elif isinstance(d, dict):
+        return dict(result)
+
 
 def load(fp, encoding=None, cls=None, object_hook=None, parse_float=None,
         parse_int=None, parse_constant=None, object_pairs_hook=None,
@@ -431,7 +460,7 @@ def load(fp, encoding=None, cls=None, object_hook=None, parse_float=None,
         use_decimal=use_decimal, **kw)
 
 
-def loads(s, encoding=None, cls=None, object_hook=None, parse_float=None,
+def loads(s, encoding=None, cls=None, object_hook=_datetime_decoder, parse_float=None,
         parse_int=None, parse_constant=None, object_pairs_hook=None,
         use_decimal=False, **kw):
     """Deserialize ``s`` (a ``str`` or ``unicode`` instance containing a JSON

@@ -84,7 +84,8 @@ BACKSLASH = {
 
 DEFAULT_ENCODING = "utf-8"
 
-def py_scanstring(s, end, encoding=None, strict=True,
+def py_scanstring(s
+    , end, encoding=None, strict=True,
         _b=BACKSLASH, _m=STRINGCHUNK.match, _join=u('').join,
         _PY3=PY3, _maxunicode=sys.maxunicode):
     """Scan the string s for a JSON string. End is the index of the
