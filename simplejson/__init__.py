@@ -463,7 +463,7 @@ def load(fp, encoding=None, cls=None, object_hook=None, parse_float=None,
 def loads(s, encoding=None, cls=None, object_hook=_datetime_decoder, parse_float=None,
         parse_int=None, parse_constant=None, object_pairs_hook=None,
         use_decimal=False, **kw):
-    """Deserialize ``s`` (a ``str`` or ``unicode`` instance containing a JSON
+    r"""Deserialize ``s`` (a ``str`` or ``unicode`` instance containing a JSON
     document) to a Python object.
 
     *encoding* determines the encoding used to interpret any
@@ -509,6 +509,8 @@ def loads(s, encoding=None, cls=None, object_hook=_datetime_decoder, parse_float
     kwarg. NOTE: You should use *object_hook* or *object_pairs_hook* instead
     of subclassing whenever possible.
 
+    >>> loads('{"dt": "2010-07-15T13:16:38.365579"}')
+    {u'dt': datetime.datetime(2010, 7, 15, 13, 16, 38, 365579)}
     """
     if (cls is None and encoding is None and object_hook is None and
             parse_int is None and parse_float is None and
